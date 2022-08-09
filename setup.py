@@ -39,7 +39,7 @@ setup(
     url="https://github.com/CybercentreCanada/martello/",
     packages=find_packages(),
     package_data={
-        "martello": ["bin/libboost_*", "bin/*.bin", "bin/*.pkl"],
+        "martello": ["bin/*"],
     },
     python_requires=">=3.0",
     install_requires=required,
