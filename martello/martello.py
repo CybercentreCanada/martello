@@ -54,18 +54,21 @@ from pathlib import Path
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 class PredictiveModel:
-    def __init__(self,modelpath = Path(__file__).parent.absolute().joinpath("bin")):
+    def __init__(self,modelpath = Path(__file__).parent.absolute().joinpath("bin"), out_path = ""):
         self.modelpath  = modelpath
         self.classifier = pickle.load(open(self.modelpath/"martello-classifier.pkl", 'rb'))
         self.vectorizer = self.modelpath/"martello-vectorizer-coo"
-        self.outfile    = 'out' + str(os.getpid()) 
+        self.outfile    = out_path + 'out' + str(os.getpid()) 
         self.topk_file  = self.modelpath/"martello-features.bin"
         self.K = np.fromfile(open(self.topk_file), dtype=np.intc, count=1)[0]
         self.N = 2500
     def scanfile(self,file_, probability_threshold = 0.5):
+        [os.remove(file_) for file_ in glob.glob(self.outfile + '*'  , recursive=False)]
         status = os.system('export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:%s; \
            %s -f %s -k %s -n 6 -x 6 -t 1 -o %s' \
            %(self.modelpath, self.vectorizer, file_, self.topk_file, self.outfile))
+        if status != 0:
+            return
         dtm_coo = np.fromfile(self.outfile + '.coo.bin.part0', dtype=np.intc).reshape(-1,3)
         X_csr   = coo_matrix((dtm_coo[:,2], (dtm_coo[:,0], dtm_coo[:,1])), shape=(dtm_coo[-1,0] + 1, self.K)).tocsr()[:,0:self.N]
         self.fileProba = self.classifier.predict_proba(X_csr)[0,1]
