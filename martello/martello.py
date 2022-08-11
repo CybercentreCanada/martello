@@ -60,19 +60,18 @@ class PredictiveModel:
         self.vectorizer = self.modelpath/"martello-vectorizer-coo"
         self.outfile    = out_path + 'out' + str(os.getpid()) 
         self.topk_file  = self.modelpath/"martello-features.bin"
-        self.fileProba  = None
-        self.fileLabel  = None
         self.K = np.fromfile(open(self.topk_file), dtype=np.intc, count=1)[0]
         self.N = 2500
     def scanfile(self,file_, probability_threshold = 0.5):
         [os.remove(file_) for file_ in glob.glob(self.outfile + '*'  , recursive=False)]
+        self.fileProba  = None
+        self.fileLabel  = None
         status = os.system('export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:%s; \
            %s -f %s -k %s -n 6 -x 6 -t 1 -o %s' \
            %(self.modelpath, self.vectorizer, file_, self.topk_file, self.outfile))
         if status != 0:
             return
         dtm_coo = np.fromfile(self.outfile + '.coo.bin.part0', dtype=np.intc)
-        dtm_is_empty = dtm_coo.size == 0
         if dtm_coo.size != 0: # check if the scanned file contains features
             dtm_coo = dtm_coo.reshape(-1,3)
             X_csr   = coo_matrix((dtm_coo[:,2], (dtm_coo[:,0], dtm_coo[:,1])), shape=(dtm_coo[-1,0] + 1, self.K)).tocsr()[:,0:self.N]
